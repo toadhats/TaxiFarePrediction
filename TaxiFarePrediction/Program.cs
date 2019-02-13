@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using System.IO;
 using Microsoft.Data.DataView;
 using Microsoft.ML;
@@ -38,24 +39,32 @@ namespace TaxiFarePrediction
                     new TextLoader.Column("FareAmount", DataKind.R4, 6) // Decimal dollars
                 }
             });
-
-            var model = Train(mlContext, _trainDataPath); // Generate model from training dataset - TODO: No reason to do this every time!
-            Evaluate(mlContext, model); // Evaluate model performance against the test data (TODO: Parameterise to allow evaluation against different datasets without modifying source)
-            TestSinglePrediction(mlContext);
+            // Don't regenerate and reevaluate the model every time, takes too long
+            // TODO: Make it regenerate the model if the training data has changed? (Would need to persist a hash of the training data between runs)
+            if (!File.Exists(_modelPath) )
+            {
+                var model = Train(mlContext, _trainDataPath); // Generate model from training dataset - TODO: No reason to do this every time!
+                Evaluate(mlContext, model); // Evaluate model performance against the test data (TODO: Parameterise to allow evaluation against different datasets without modifying source)
+            }
+            //TestSinglePrediction(mlContext);
 
             // Let's actually use this as if it was a real service
 
             // TODO: Make it possible to specify this trip from command line
-            var taxiTripSample = new TaxiTrip()
+            var culture = new CultureInfo("en-US");
+            var trip = new TaxiTrip()
             {
                 VendorId = "VTS",
                 RateCode = "1",
-                PassengerCount = 1,
-                TripTime = 1140,
-                TripDistance = 3.75f,
+                PassengerCount = int.Parse(args[0], culture),//1,
+                TripTime = int.Parse(args[1], culture),//1540,
+                TripDistance = float.Parse(args[2], culture), // 5.70f,
                 PaymentType = "CRD",
                 FareAmount = 0 // To predict.
             };
+            var result = Predict(mlContext, trip);
+
+            Console.WriteLine($"Predicted fare: ${result.FareAmount:#.##}");
 
         }
         public static ITransformer Train(MLContext mlContext, string dataPath)

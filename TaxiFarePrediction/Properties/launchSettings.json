@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "TaxiFarePrediction": {
+      "commandName": "Project",
+      "commandLineArgs": "1 1000 2.5"
+    }
+  }
+}
